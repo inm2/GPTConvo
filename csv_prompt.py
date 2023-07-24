@@ -4,6 +4,8 @@ import streamlit as st
 import sys
 from io import StringIO
 from tiktoken_cost import *
+import matplotlib
+matplotlib.use('tkagg')
 
 # The purpose of this file is to handle CSV files -> convert to a dataframe
 # and enable a conversation from the dataframe
@@ -32,14 +34,17 @@ def csv_reader(file_name, selection):
         Using the provided dataframe, df, return the Python code to get the answer to the following question: """
     
     if selection == 'One-Shot':
-       messages = [{"role": "system", "content": csv_content},]
+        messages = [{"role": "system", "content": csv_content},]
        
-    elif selection == 'Few-Shot:':
-        example_text = """highest_population_county = df.loc[df['population'].idxmax(), 'country']
-        print(highest_population_country"""
+    if selection == 'Few-Shot':
+        example_text = """import matplotlib.pyplot as plt
+top_5_happiest_countries = df.sort_values('happiness_index', ascending=False).head(5)
+plt.bar(top_5_happiest_countries['country'], top_5_happiest_countries['happiness_index'], color=['blue', 'green', 'yellow', 'red', 'purple'])
+plt.xlabel('Country') plt.ylabel('Happiness Index') plt.title('Top 5 Happiest Countries')
+plt.show()"""
 
         messages = [{"role": "system", "content": csv_content},
-                    {"role": "user", "content": "Which country has the highest population?"},
+                    {"role": "user", "content": "Give me the Top 5 happiest countries in a plot with different colors."},
                     {"role": "assistant", "content": example_text},]
     
     # Initalize session state variable
@@ -55,6 +60,8 @@ def csv_reader(file_name, selection):
       # Prompt the user input
       st.session_state.messages.append({"role": "user", "content": prompt})
       st.chat_message("user").write(prompt)
+      print(st.session_state.messages)
+      print("Messages: ", messages)
 
       # Append all of the messages to pass into OpenAI Model
       messages += st.session_state["messages"]
@@ -68,6 +75,9 @@ def csv_reader(file_name, selection):
 
       st.session_state.messages.append(msg)
 
+      print("MSG: \n\n", msg)
+      print("Session State: \n\n", st.session_state.messages)
+
       # Get the return from OpenAI
       st.chat_message("assistant").write(msg.content)
 
@@ -79,9 +89,10 @@ def csv_reader(file_name, selection):
       st.write(f'Embedding (Input) Cost in USD: {cost}')
 
     
-
+      
       # Execute code
+      exec(msg["content"])
+      print("DONE~")
 
-
-      print(messages)
+      #print(messages)
 
